@@ -18,7 +18,7 @@
         <module>messaging-contracts</module>
         <module>api-gateway</module>
         <module>trip-service</module>
-        <module>matching-service</module>
+        <module>matching_pricing_service</module>
         <module>payment-service</module>
     </modules>
     <properties>

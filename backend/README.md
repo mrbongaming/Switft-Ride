@@ -2,6 +2,16 @@
 
 Spring Boot 4.1.2, Spring Cloud 2025.1.4, Java 21. `messaging-contracts` là thư viện JAR dùng chung, không phải microservice thứ tư. Có ba service nghiệp vụ và một API Gateway.
 
+## Đối chiếu mục 5 của tài liệu
+
+| Service | Trách nhiệm và file để bạn triển khai | API tiêu biểu |
+|---|---|---|
+| Trip Service | `domain/Trip.java`, `domain/TripState.java`, các file rỗng ở `domain/state/`, `domain/event/`, `application/TripApplicationService.java`; dữ liệu riêng trong SQL Server | `POST /trips`, `POST /trips/{id}/driver-accept`, `POST /trips/{id}/pickup`, `POST /trips/{id}/dropoff` trong `api/TripController.java` |
+| Matching và Pricing Service | `application/GeoDriverQuery.java`, `infrastructure/DriverLocationRepository.java` cho MongoDB geo-query; `domain/PricingStrategy.java` và `domain/pricing/StandardPricing.java`, `SurgePricing.java`, `PromoPricing.java` | `POST /match`, `POST /quote` trong hai controller ở `api/` |
+| Payment Service | `domain/Payment.java`, `LedgerTransaction.java`, `LedgerEntry.java`, `PaymentMethodToken.java`; `application/PaymentApplicationService.java`, `RefundApplicationService.java`, `SagaCompensationService.java`, `IdempotencyService.java`; repository riêng trong PostgreSQL | `POST /payments`, `POST /payments/{id}/refund` trong `api/PaymentController.java` |
+
+Các file nghiệp vụ nêu trong bảng là file rỗng. Chỉ hạ tầng Gateway/RabbitMQ, event contract và file khởi động Spring Boot đã có code. Payment Service chỉ nên lưu token do cổng thanh toán cấp, không lưu số thẻ hoặc CVV. Các endpoint GET và thao tác bổ sung trong frontend là hợp đồng mở rộng cho giao diện, không thay thế tám API tiêu biểu của tài liệu.
+
 ## Chạy hạ tầng RabbitMQ
 
 ```powershell
@@ -21,7 +31,7 @@ RabbitMQ AMQP ở `localhost:5672`, giao diện quản trị ở `http://localho
 | `TRIP_DB_URL`, `TRIP_DB_USER`, `TRIP_DB_PASSWORD` | SQL Server/TripDB |
 | `MATCH_DB_URI` | MongoDB/MatchDB |
 | `PAY_DB_URL`, `PAY_DB_USER`, `PAY_DB_PASSWORD` | PostgreSQL/PayDB |
-| `TRIP_SERVICE_URL`, `MATCHING_SERVICE_URL`, `PAYMENT_SERVICE_URL` | Gateway; mặc định cổng 8081/8082/8083 |
+| `TRIP_SERVICE_URL`, `MATCHING_PRICING_SERVICE_URL`, `PAYMENT_SERVICE_URL` | Gateway; mặc định cổng 8081/8082/8083 |
 | `FRONTEND_ORIGIN` | CORS Gateway; mặc định `http://localhost:5173` |
 
 Trong PowerShell, thiết lập biến môi trường cho phiên chạy, ví dụ `$env:RABBITMQ_USER = 'swiftride'` và `$env:RABBITMQ_PASSWORD = '<mật khẩu trong .env>'`. Không commit mật khẩu thật. Build toàn bộ bằng `mvn -DskipTests package` tại thư mục `backend/`. Nếu cache Maven ngoài workspace bị hạn chế, dùng `mvn '-Dmaven.repo.local=.m2/repository' -DskipTests package`.
@@ -40,3 +50,5 @@ Topology nằm trong `infrastructure/messaging/*RabbitConfiguration.java`; publi
 Các listener đang có `swiftride.messaging.consumers-enabled: false` trong `application.yml`. Sau khi bạn triển khai `TripAcceptedHandler`, `RideCompletedHandler` và `PaymentResultHandler` với transaction + chống xử lý trùng `eventId`/`idempotencyKey`, đổi cờ này thành `true` cho service tương ứng. Nếu bật trước khi có handler, service sẽ lỗi lúc khởi động thay vì xác nhận và làm mất message. `Outbox` chưa được triển khai vì cần gắn với transaction của các lớp nghiệp vụ/DB mà bạn chưa viết; không gọi publisher trực tiếp trong transaction rồi coi đó là bảo đảm nhất quán.
 
 Các endpoint HTTP vẫn cần bạn triển khai trong các controller còn rỗng. Gateway đã định tuyến `/api/trips/**`, `/api/quote`, `/api/match/**`, `/api/payments/**` đến từng service. Xác thực JWT và phân quyền vẫn là phần bạn cần viết trước khi triển khai thực tế.
+
+

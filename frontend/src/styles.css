@@ -21,6 +21,4 @@ input:focus, textarea:focus { outline: none; }
   .secondary-btn { @apply inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-bold text-ink transition hover:border-slate-300 hover:bg-slate-50; }
   .field-label { @apply text-xs font-bold text-ink; }
   .text-input { @apply block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-medium text-ink transition placeholder:font-normal placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-blue-100; }
-  .method-btn { @apply flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-muted; }
-  .method-active { @apply bg-white text-brand shadow-sm; }
 }

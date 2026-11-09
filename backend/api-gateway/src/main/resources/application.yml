@@ -26,8 +26,8 @@ spring:
                 - Path=/api/trips,/api/trips/**
               filters:
                 - StripPrefix=1
-            - id: matching-service
-              uri: ${MATCHING_SERVICE_URL:http://localhost:8082}
+            - id: matching-pricing-service
+              uri: ${MATCHING_PRICING_SERVICE_URL:http://localhost:8082}
               predicates:
                 - Path=/api/quote,/api/match,/api/match/**
               filters:

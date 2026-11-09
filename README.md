@@ -20,17 +20,17 @@ backend/
   pom.xml                         # parent Maven
   messaging-contracts/            # thư viện event dùng chung, không phải service
   api-gateway/                     # Spring Cloud Gateway
-  trip-service/                    # Spring Boot, Trip DB (SQL Server)
-    domain/ application/ infrastructure/ api/
-  matching-service/                # Spring Boot, Match DB (MongoDB)
-    domain/ application/ infrastructure/ api/
-  payment-service/                 # Spring Boot, Pay DB (PostgreSQL)
+  trip-service/                    # tạo chuyến, State pattern, domain events; SQL Server
+    domain/state/ domain/event/ application/ infrastructure/ api/
+  matching_pricing_service/        # geo-query + Standard/Surge/Promo Pricing; MongoDB
+    domain/pricing/ application/ infrastructure/ api/
+  payment-service/                 # payment, double-entry ledger, refund, Saga, idempotency; PostgreSQL
     domain/ application/ infrastructure/ api/
 ```
 
-Các thư mục Java thực tế ở `src/main/java/com/swiftride/...`. `pom.xml` và `application.yml` của từng module đã có nội dung. Tên các file nghiệp vụ gợi ý ranh giới State cho Trip, Strategy cho Pricing, repository riêng cho từng DB và ledger trong Payment; những file nghiệp vụ này vẫn rỗng. Tài liệu gốc đề xuất .NET/YARP; theo yêu cầu của bạn, khung này chuyển sang Spring Boot/Spring Cloud Gateway và giữ đúng ba service nghiệp vụ.
+Các thư mục Java thực tế ở `src/main/java/com/swiftride/...`. `pom.xml` và `application.yml` của từng module đã có nội dung. Các file nghiệp vụ cho state, ba chiến lược giá, geo-query, ledger, refund, compensation và idempotency vẫn rỗng để bạn tự code. Tài liệu gốc đề xuất .NET/YARP; theo yêu cầu của bạn, khung này chuyển sang Spring Boot/Spring Cloud Gateway và giữ đúng ba service nghiệp vụ.
 
-## Hợp đồng API frontend đã chuẩn bị
+## Hợp đồng API qua Gateway
 
 Tất cả đường dẫn dưới đây nằm sau prefix `/api` của Gateway. Frontend dùng JSON, gửi `Authorization: Bearer <JWT>` khi có token, `X-Correlation-Id` trên mỗi request, timeout 12 giây. Các thao tác thanh toán và hoàn tiền gửi `Idempotency-Key` ổn định qua lần thử lại. JWT chỉ được giữ trong `sessionStorage`; không nhập số thẻ/CVV.
 
@@ -51,7 +51,7 @@ Tất cả đường dẫn dưới đây nằm sau prefix `/api` của Gateway. 
 | Matching/Pricing | `GET /match/offers?driverId=...` | Lời mời chờ tài xế |
 | Payment | `GET /payments?riderId=...` | Lịch sử giao dịch |
 | Payment | `GET /payments/{id}` | Chi tiết giao dịch |
-| Payment | `POST /payments` | Thanh toán với `tripId`, `riderId`, `amount`, `currency`, `method`, `paymentToken` nếu dùng thẻ token |
+| Payment | `POST /payments` | Tạo giao dịch; frontend có sẵn API client nhưng luồng dropoff dùng sự kiện nội bộ |
 | Payment | `POST /payments/{id}/refund` | Hoàn tiền với `reason` |
 
 Các endpoint **được nêu trực tiếp trong tài liệu**: `POST /trips`, `POST /trips/{id}/driver-accept`, `POST /trips/{id}/pickup`, `POST /trips/{id}/dropoff`, `POST /match`, `POST /quote`, `POST /payments`, `POST /payments/{id}/refund`. Các endpoint GET, xác nhận/từ chối/hủy và `en-route` là **hợp đồng bổ sung cho giao diện đầy đủ**; bạn có thể dùng đúng các đường dẫn này khi code backend hoặc chỉnh tập trung trong `frontend/src/lib/api.ts`.
@@ -66,10 +66,12 @@ Các endpoint **được nêu trực tiếp trong tài liệu**: `POST /trips`, 
 
 Danh sách trả về **mảng JSON**. Các lệnh cập nhật chuyến trả về `Trip` mới nhất. Lỗi trả JSON có `message`, `detail` hoặc `title`. Trạng thái chuyến: `Requested`, `Quoted`, `DriverOffered`, `DriverAccepted`, `EnRoute`, `PickedUp`, `DroppedOff`, `PaymentPending`, `Paid`; nhánh cuối `Cancelled`/`Failed`. Thanh toán: `Pending`, `Succeeded`, `Failed`, `Refunded`.
 
-Flow hiện tại ở frontend: tạo chuyến → yêu cầu báo giá → yêu cầu matching → rider xác nhận → tài xế nhận/từ chối → mốc chuyến → rider gửi thanh toán → xem trạng thái/hoàn tiền. Backend phải kiểm tra chuyển trạng thái, giá hợp lệ, quyền truy cập và idempotency. Frontend không tính giá hoặc giả lập matching. Khi bạn nối handler xử lý `RideCompleted` với Payment Service, có thể bỏ nút gửi thanh toán thủ công mà không phải đổi màn hình giao dịch.
+Flow theo tài liệu: tạo chuyến → yêu cầu báo giá và matching → rider xác nhận → tài xế nhận/từ chối → đón/trả khách → Trip Service phát `RideCompleted` → Payment Service thanh toán và ghi sổ cái → Trip Service nhận kết quả và đóng chuyến. Rider chỉ theo dõi kết quả trên frontend; backend phải kiểm tra chuyển trạng thái, giá hợp lệ, quyền truy cập và idempotency. Frontend không tính giá hoặc giả lập matching.
 
 ## Phần dành cho bạn
 
 - **Map:** vùng bản đồ trên giao diện cố ý để trống. Hiện có ô nhập địa chỉ và tọa độ thủ công để kiểm thử API.
 - **RabbitMQ:** exchange, queue, DLQ, publisher, listener và event contract đã có. Listener mặc định tắt cho đến khi bạn viết handler nghiệp vụ; xem [hướng dẫn backend](backend/README.md).
 - **Backend:** chưa có database schema, xác thực hay xử lý nghiệp vụ. Bạn cần điền các lớp domain/application/api/repository còn rỗng.
+
+
