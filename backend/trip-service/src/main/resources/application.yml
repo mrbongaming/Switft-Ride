@@ -1,0 +1,44 @@
+server:
+  port: ${TRIP_SERVICE_PORT:8081}
+
+spring:
+  application:
+    name: trip-service
+  datasource:
+    url: ${TRIP_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=TripDB;encrypt=true;trustServerCertificate=true}
+    username: ${TRIP_DB_USER:sa}
+    password: ${TRIP_DB_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${TRIP_DDL_AUTO:none}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        prefetch: 10
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-retries: 3
+          initial-interval: 500ms
+          multiplier: 2
+          max-interval: 5s
+
+swiftride:
+  messaging:
+    consumers-enabled: false # Turn on only after PaymentResultHandler is implemented.
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

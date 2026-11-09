@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: 'DM Sans', sans-serif; color: #18243b; background: #f5f7fb; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+input:focus, textarea:focus { outline: none; }
+
+@layer components {
+  .card { @apply rounded-[20px] border border-[#eaf0f7] bg-white shadow-card; }
+  .section-eyebrow { @apply text-[10px] font-extrabold tracking-[.16em] text-brand; }
+  .section-title { @apply font-display text-lg font-extrabold tracking-[-.5px]; }
+  .nav-item { @apply flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] font-semibold text-muted transition hover:bg-slate-50 hover:text-ink; }
+  .nav-active { @apply bg-[#edf4ff] text-brand hover:bg-[#edf4ff] hover:text-brand; }
+  .header-icon { @apply flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-slate-100 hover:text-ink; }
+  .role-btn { @apply flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-muted transition; }
+  .role-active { @apply bg-brand text-white shadow-sm; }
+  .primary-btn { @apply inline-flex min-h-10 items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-[13px] font-bold text-white shadow-sm shadow-blue-200 transition hover:bg-[#1753d3]; }
+  .secondary-btn { @apply inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-bold text-ink transition hover:border-slate-300 hover:bg-slate-50; }
+  .field-label { @apply text-xs font-bold text-ink; }
+  .text-input { @apply block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-medium text-ink transition placeholder:font-normal placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-blue-100; }
+  .method-btn { @apply flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-muted; }
+  .method-active { @apply bg-white text-brand shadow-sm; }
+}

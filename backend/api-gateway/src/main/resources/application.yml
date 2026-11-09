@@ -1,0 +1,46 @@
+server:
+  port: ${GATEWAY_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 10s
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - ${FRONTEND_ORIGIN:http://localhost:5173}
+                allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+                allowedHeaders: [Authorization, Content-Type, X-Correlation-Id, Idempotency-Key]
+          routes:
+            - id: trip-service
+              uri: ${TRIP_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/trips,/api/trips/**
+              filters:
+                - StripPrefix=1
+            - id: matching-service
+              uri: ${MATCHING_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/quote,/api/match,/api/match/**
+              filters:
+                - StripPrefix=1
+            - id: payment-service
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/payments,/api/payments/**
+              filters:
+                - StripPrefix=1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
