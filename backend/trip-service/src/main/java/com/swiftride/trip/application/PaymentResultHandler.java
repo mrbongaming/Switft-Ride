@@ -1,10 +1,9 @@
 package com.swiftride.trip.application;
 
-import com.swiftride.contracts.events.PaymentFailedEvent;
-import com.swiftride.contracts.events.PaymentSettledEvent;
+import java.util.UUID;
 
-/** Implement with transactional state changes and event-id deduplication before enabling consumers. */
+/** Applies payment outcomes to the trip state machine. */
 public interface PaymentResultHandler {
-    void onPaymentSettled(PaymentSettledEvent event);
-    void onPaymentFailed(PaymentFailedEvent event);
+    void onPaymentSettled(UUID tripId, UUID paymentId);
+    void onPaymentFailed(UUID tripId);
 }

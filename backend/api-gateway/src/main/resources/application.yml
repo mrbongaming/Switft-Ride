@@ -26,6 +26,12 @@ spring:
                 - Path=/api/trips,/api/trips/**
               filters:
                 - StripPrefix=1
+            - id: users
+              uri: ${TRIP_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/users
+              filters:
+                - StripPrefix=1
             - id: matching-pricing-service
               uri: ${MATCHING_PRICING_SERVICE_URL:http://localhost:8082}
               predicates:
@@ -36,6 +42,12 @@ spring:
               uri: ${PAYMENT_SERVICE_URL:http://localhost:8083}
               predicates:
                 - Path=/api/payments,/api/payments/**
+              filters:
+                - StripPrefix=1
+            - id: driver-wallet
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/drivers/*/wallet
               filters:
                 - StripPrefix=1
 

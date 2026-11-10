@@ -3,6 +3,8 @@ package com.swiftride.payment.infrastructure.messaging;
 import com.swiftride.contracts.events.MessagingTopology;
 import com.swiftride.contracts.events.PaymentFailedEvent;
 import com.swiftride.contracts.events.PaymentSettledEvent;
+import com.swiftride.payment.application.PaymentEvents;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -10,7 +12,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PaymentEventPublisher {
+public class PaymentEventPublisher implements PaymentEvents {
     private final RabbitTemplate rabbitTemplate;
 
     public PaymentEventPublisher(RabbitTemplate rabbitTemplate) {
@@ -19,6 +21,9 @@ public class PaymentEventPublisher {
 
     public CompletableFuture<Void> publishSettled(PaymentSettledEvent event) {
         return send(MessagingTopology.PAYMENT_SETTLED_KEY, event.eventId(), event.correlationId(), event);
+    }
+    public void settled(UUID tripId, UUID paymentId) {
+        publishSettled(new PaymentSettledEvent(UUID.randomUUID(), tripId, paymentId, Instant.now(), tripId.toString())).join();
     }
 
     public CompletableFuture<Void> publishFailed(PaymentFailedEvent event) {

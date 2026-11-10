@@ -1,4 +1,40 @@
 services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${TRIP_DB_PASSWORD:?Set TRIP_DB_PASSWORD in .env}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      - sqlserver
+    environment:
+      MSSQL_SA_PASSWORD: ${TRIP_DB_PASSWORD:?Set TRIP_DB_PASSWORD in .env}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >-
+        until /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1"; do sleep 3; done;
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "IF DB_ID('TripDB') IS NULL CREATE DATABASE TripDB"
+  mongodb:
+    image: mongo:8
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+  postgres:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: PayDB
+      POSTGRES_USER: ${PAY_DB_USER:?Set PAY_DB_USER in .env}
+      POSTGRES_PASSWORD: ${PAY_DB_PASSWORD:?Set PAY_DB_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
   rabbitmq:
     image: rabbitmq:4.1-management
     ports:
@@ -16,4 +52,7 @@ services:
       retries: 10
 
 volumes:
+  sqlserver_data:
+  mongodb_data:
+  postgres_data:
   rabbitmq_data:

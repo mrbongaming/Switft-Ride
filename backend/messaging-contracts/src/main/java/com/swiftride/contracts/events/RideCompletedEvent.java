@@ -8,6 +8,7 @@ public record RideCompletedEvent(
         UUID eventId,
         UUID tripId,
         String riderId,
+        String driverId,
         BigDecimal amount,
         String currency,
         String paymentMethodId,

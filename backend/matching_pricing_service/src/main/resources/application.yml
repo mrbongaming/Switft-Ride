@@ -24,7 +24,7 @@ spring:
 
 swiftride:
   messaging:
-    consumers-enabled: false # Turn on only after TripAcceptedHandler is implemented.
+    consumers-enabled: true
 
 management:
   endpoints:

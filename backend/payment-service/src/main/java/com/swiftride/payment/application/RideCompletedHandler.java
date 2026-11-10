@@ -1,8 +1,9 @@
 package com.swiftride.payment.application;
 
-import com.swiftride.contracts.events.RideCompletedEvent;
+import java.math.BigDecimal;
+import java.util.UUID;
 
-/** Implement with idempotent ledger writes before enabling the RabbitMQ consumer. */
+/** Handles a completed ride with idempotent payment and ledger writes. */
 public interface RideCompletedHandler {
-    void onRideCompleted(RideCompletedEvent event);
+    void onRideCompleted(UUID tripId, String riderId, String driverId, BigDecimal amount, String currency, String idempotencyKey);
 }

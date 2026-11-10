@@ -18,6 +18,6 @@ public class RideCompletedListener {
 
     @RabbitListener(queues = MessagingTopology.RIDE_COMPLETED_QUEUE)
     public void onRideCompleted(RideCompletedEvent event) {
-        handler.onRideCompleted(event);
+        handler.onRideCompleted(event.tripId(), event.riderId(), event.driverId(), event.amount(), event.currency(), event.idempotencyKey());
     }
 }

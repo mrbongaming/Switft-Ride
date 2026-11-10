@@ -1,54 +1,31 @@
-# Backend SwiftRide
+# SwiftRide backend
 
-Spring Boot 4.1.2, Spring Cloud 2025.1.4, Java 21. `messaging-contracts` là thư viện JAR dùng chung, không phải microservice thứ tư. Có ba service nghiệp vụ và một API Gateway.
+Java 21, Spring Boot 4.1.2, Spring Cloud Gateway. Các module:
 
-## Đối chiếu mục 5 của tài liệu
-
-| Service | Trách nhiệm và file để bạn triển khai | API tiêu biểu |
+| Module | Vai trò | Lưu trữ |
 |---|---|---|
-| Trip Service | `domain/Trip.java`, `domain/TripState.java`, các file rỗng ở `domain/state/`, `domain/event/`, `application/TripApplicationService.java`; dữ liệu riêng trong SQL Server | `POST /trips`, `POST /trips/{id}/driver-accept`, `POST /trips/{id}/pickup`, `POST /trips/{id}/dropoff` trong `api/TripController.java` |
-| Matching và Pricing Service | `application/GeoDriverQuery.java`, `infrastructure/persistence/mongo/DriverLocationRepository.java` cho MongoDB geo-query; `domain/pricing/PricingStrategy.java`, `StandardPricing.java`, `SurgePricing.java`, `PromoPricing.java` | `POST /match`, `POST /quote` trong hai controller ở `api/` |
-| Payment Service | `domain/Payment.java`, `LedgerTransaction.java`, `LedgerEntry.java`, `PaymentMethodToken.java`; `application/PaymentApplicationService.java`, `RefundApplicationService.java`, `SagaCompensationService.java`, `IdempotencyService.java`; repository riêng trong PostgreSQL | `POST /payments`, `POST /payments/{id}/refund` trong `api/PaymentController.java` |
+| `trip-service` | Người dùng demo, chuyến đi, chuyển trạng thái | SQL Server `TripDB` |
+| `matching_pricing_service` | Báo giá, vị trí và ghép tài xế | MongoDB `MatchDB` |
+| `payment-service` | Thanh toán demo, hoàn tiền, sổ cái, ví tài xế | PostgreSQL `PayDB` |
+| `api-gateway` | Định tuyến `/api/**`, CORS | Không |
+| `messaging-contracts` | Kiểu sự kiện và tên queue | Không |
 
-Các file nghiệp vụ nêu trong bảng là file rỗng. Chỉ hạ tầng Gateway/RabbitMQ, event contract và file khởi động Spring Boot đã có code. Payment Service chỉ nên lưu token do cổng thanh toán cấp, không lưu số thẻ hoặc CVV. Các endpoint GET và thao tác bổ sung trong frontend là hợp đồng mở rộng cho giao diện, không thay thế tám API tiêu biểu của tài liệu.
+Trong mỗi service, phụ thuộc đi từ `api` và `infrastructure` vào `application`, từ `application` vào `domain`. `domain` không phụ thuộc Spring. Service trong `application` điều phối nghiệp vụ; interface repository/client đặt ở `application`, hiện thực ở `infrastructure`. Xem [kiến trúc Matching/Pricing](matching_pricing_service/ARCHITECTURE.md).
 
-## Chạy hạ tầng RabbitMQ
+## API qua Gateway
 
-```powershell
-Copy-Item .env.example .env
-# Sửa mật khẩu trong .env trước khi chạy.
-docker compose up -d rabbitmq
-```
-
-RabbitMQ AMQP ở `localhost:5672`, giao diện quản trị ở `http://localhost:15672`. Docker Compose chỉ chạy RabbitMQ. SQL Server, MongoDB và PostgreSQL cần được chạy/cấp riêng rồi thiết lập biến môi trường cho từng service. File `.env` phục vụ Docker Compose; Spring Boot chạy từ terminal/IDE **không tự đọc** file đó.
-
-## Biến môi trường cho Spring Boot
-
-| Biến | Dùng cho |
+| Đường dẫn | Chức năng |
 |---|---|
-| `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | Trip, Matching, Payment; bắt buộc |
-| `RABBITMQ_HOST`, `RABBITMQ_PORT` | Mặc định `localhost:5672` |
-| `TRIP_DB_URL`, `TRIP_DB_USER`, `TRIP_DB_PASSWORD` | SQL Server/TripDB |
-| `MATCH_DB_URI` | MongoDB/MatchDB |
-| `PAY_DB_URL`, `PAY_DB_USER`, `PAY_DB_PASSWORD` | PostgreSQL/PayDB |
-| `TRIP_SERVICE_URL`, `MATCHING_PRICING_SERVICE_URL`, `PAYMENT_SERVICE_URL` | Gateway; mặc định cổng 8081/8082/8083 |
-| `FRONTEND_ORIGIN` | CORS Gateway; mặc định `http://localhost:5173` |
+| `GET /api/users?role=rider|driver` | Tài khoản demo |
+| `POST /api/trips`, `GET /api/trips`, `GET /api/trips/{id}` | Tạo và xem chuyến |
+| `POST /api/quote`, `POST /api/match`, `GET /api/match/offers?driverId=...` | Báo giá và ghép tài xế |
+| `POST /api/trips/{id}/confirm-quote`, `/cancel`, `/driver-accept`, `/driver-reject`, `/en-route`, `/pickup`, `/dropoff` | Chuyển trạng thái chuyến |
+| `GET /api/payments?riderId=...`, `GET /api/payments/{id}` | Lịch sử thanh toán |
+| `POST /api/payments`, `POST /api/payments/{id}/refund` | Thanh toán demo và hoàn tiền; yêu cầu `Idempotency-Key` |
+| `GET /api/drivers/{id}/wallet` | Ví tài xế |
 
-Trong PowerShell, thiết lập biến môi trường cho phiên chạy, ví dụ `$env:RABBITMQ_USER = 'swiftride'` và `$env:RABBITMQ_PASSWORD = '<mật khẩu trong .env>'`. Không commit mật khẩu thật. Build toàn bộ bằng `mvn -DskipTests package` tại thư mục `backend/`. Nếu cache Maven ngoài workspace bị hạn chế, dùng `mvn '-Dmaven.repo.local=.m2/repository' -DskipTests package`.
+`Trip Service` còn có `POST /trips/{id}/quote`, `POST /trips/{id}/offer` và `GET /trips/offers`, được Matching/Pricing Service gọi nội bộ. Các API demo chưa có kiểm tra danh tính, nên chỉ chạy trong môi trường cục bộ.
 
-## Event và nơi nối nghiệp vụ
+## Hạ tầng và build
 
-| Publisher | Routing key | Consumer | Việc bạn cần viết |
-|---|---|---|---|
-| Trip | `trip.accepted.v1` | Matching | Cập nhật trạng thái sẵn sàng của tài xế |
-| Trip | `ride.completed.v1` | Payment | Trừ tiền/ghi ledger idempotent |
-| Payment | `payment.settled.v1` | Trip | Chuyển chuyến sang `Paid` |
-| Payment | `payment.failed.v1` | Trip | Chuyển sang chờ xử lý/lỗi theo state machine |
-
-Topology nằm trong `infrastructure/messaging/*RabbitConfiguration.java`; publisher nằm cùng package. Event records và tên exchange/queue ở `messaging-contracts`. Mỗi queue có DLQ riêng. Listener retry có giới hạn rồi chuyển message lỗi vào DLQ. Publisher dùng confirm và mandatory routing; phương thức publish trả `CompletableFuture<Void>` để application/Outbox worker theo dõi kết quả.
-
-Các listener đang có `swiftride.messaging.consumers-enabled: false` trong `application.yml`. Sau khi bạn triển khai `TripAcceptedHandler`, `RideCompletedHandler` và `PaymentResultHandler` với transaction + chống xử lý trùng `eventId`/`idempotencyKey`, đổi cờ này thành `true` cho service tương ứng. Nếu bật trước khi có handler, service sẽ lỗi lúc khởi động thay vì xác nhận và làm mất message. `Outbox` chưa được triển khai vì cần gắn với transaction của các lớp nghiệp vụ/DB mà bạn chưa viết; không gọi publisher trực tiếp trong transaction rồi coi đó là bảo đảm nhất quán.
-
-Các endpoint HTTP vẫn cần bạn triển khai trong các controller còn rỗng. Gateway đã định tuyến `/api/trips/**`, `/api/quote`, `/api/match/**`, `/api/payments/**` đến từng service. Xác thực JWT và phân quyền vẫn là phần bạn cần viết trước khi triển khai thực tế.
-
-
+Sao chép `.env.example` thành `.env`, đổi mật khẩu, rồi chạy `docker compose up -d`. Compose tạo SQL Server, MongoDB, PostgreSQL, RabbitMQ và một tác vụ `sqlserver-init` tạo `TripDB`. Script `load-env.ps1` nạp cùng thông số vào terminal PowerShell trước khi khởi động Spring Boot. `mvn test` chạy kiểm tra domain; `mvn package` tạo JAR. Frontend được chạy riêng bằng Vite và chuyển tiếp `/api` tới Gateway.

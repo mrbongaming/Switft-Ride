@@ -19,11 +19,11 @@ public class PaymentResultListener {
 
     @RabbitListener(queues = MessagingTopology.PAYMENT_SETTLED_QUEUE)
     public void onSettled(PaymentSettledEvent event) {
-        handler.onPaymentSettled(event);
+        handler.onPaymentSettled(event.tripId(), event.paymentId());
     }
 
     @RabbitListener(queues = MessagingTopology.PAYMENT_FAILED_QUEUE)
     public void onFailed(PaymentFailedEvent event) {
-        handler.onPaymentFailed(event);
+        handler.onPaymentFailed(event.tripId());
     }
 }
