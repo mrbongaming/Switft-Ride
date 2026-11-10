@@ -1,4 +1,4 @@
-import type { LocationInput, MatchResult, Payment, Quote, Trip } from '../types';
+import type { AccountSummary, DriverWallet, LocationInput, MatchResult, Payment, Quote, Role, Trip } from '../types';
 
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 const TOKEN_KEY = 'swiftride.accessToken';
@@ -46,6 +46,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 const post = <T>(path: string, body?: unknown, idempotencyKey?: string) => request<T>(path, { method: 'POST', body, idempotencyKey });
 
 export const api = {
+  accounts: {
+    list: (role: Role) => request<AccountSummary[]>(`/users?role=${encodeURIComponent(role)}`),
+  },
   trips: {
     list: (role: 'rider' | 'driver', userId: string) => request<Trip[]>(`/trips?${role}Id=${encodeURIComponent(userId)}`),
     get: (id: string) => request<Trip>(`/trips/${encodeURIComponent(id)}`),
@@ -68,6 +71,9 @@ export const api = {
     get: (id: string) => request<Payment>(`/payments/${encodeURIComponent(id)}`),
     create: (body: { tripId: string; riderId: string; amount: number; currency: string; method: 'WALLET' | 'CARD_TOKEN'; paymentToken?: string }, idempotencyKey: string) => post<Payment>('/payments', body, idempotencyKey),
     refund: (id: string, reason: string, idempotencyKey: string) => post<Payment>(`/payments/${encodeURIComponent(id)}/refund`, { reason }, idempotencyKey),
+  },
+  wallet: {
+    get: (driverId: string) => request<DriverWallet>(`/drivers/${encodeURIComponent(driverId)}/wallet`),
   },
 };
 

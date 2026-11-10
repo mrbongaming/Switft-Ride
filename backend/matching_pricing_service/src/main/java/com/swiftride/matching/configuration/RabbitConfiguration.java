@@ -1,4 +1,4 @@
-package com.swiftride.matching.infrastructure.messaging;
+package com.swiftride.matching.configuration;
 
 import com.swiftride.contracts.events.MessagingTopology;
 import org.springframework.amqp.core.Binding;
@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class MatchingRabbitConfiguration {
+public class RabbitConfiguration {
     @Bean
     TopicExchange matchingEventsExchange() {
         return new TopicExchange(MessagingTopology.EVENTS_EXCHANGE, true, false);
@@ -54,3 +54,4 @@ public class MatchingRabbitConfiguration {
         return new JacksonJsonMessageConverter("com.swiftride.contracts.events");
     }
 }
+

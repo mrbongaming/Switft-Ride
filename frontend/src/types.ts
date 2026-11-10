@@ -1,5 +1,14 @@
 export type Role = 'rider' | 'driver';
-export type Page = 'overview' | 'trips' | 'payments' | 'settings';
+export type Page = 'overview' | 'trips' | 'payments' | 'wallet';
+
+export interface AccountSummary {
+  id: string;
+  displayName: string;
+  role: Role;
+  phone?: string;
+  vehicle?: string;
+  licensePlate?: string;
+}
 
 export interface LocationInput {
   address: string;
@@ -52,6 +61,23 @@ export interface Payment {
   status: 'Pending' | 'Succeeded' | 'Failed' | 'Refunded';
   createdAt?: string;
   method?: 'WALLET' | 'CARD_TOKEN';
+}
+
+export interface WalletEntry {
+  id: string;
+  tripId?: string;
+  amount: number;
+  type: 'EARNING' | 'WITHDRAWAL' | 'ADJUSTMENT';
+  status: 'Pending' | 'Succeeded' | 'Failed';
+  createdAt?: string;
+}
+
+export interface DriverWallet {
+  driverId: string;
+  balance: number;
+  pendingBalance: number;
+  currency: string;
+  entries: WalletEntry[];
 }
 
 export interface ApiError extends Error { status?: number }
