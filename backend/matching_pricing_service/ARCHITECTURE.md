@@ -1,31 +1,37 @@
-# Matching & Pricing — Clean Architecture
+# Matching & Pricing - Clean Architecture
 
-Dependency rule:
+Module này dùng Clean Architecture thuần và thống nhất với các service còn lại trong dự án.
+Không tổ chức source code theo mô hình Hexagonal (`port`/`adapter`).
+
+## Quy tắc phụ thuộc
 
 ```text
-adapter/in       ──> application ──> domain
-adapter/outbound ──> application ──> domain
-configuration wires ports to adapters
+api --------------------> application ----> domain
+infrastructure ---------> application ----> domain
+infrastructure ---------------------------> domain
 ```
 
-- `domain`: business models, value objects and pricing rules. It must not import Spring, MongoDB, RabbitMQ or HTTP classes.
-- `application/port/in`: use cases exposed to inbound adapters.
-- `application/port/out`: capabilities required by use cases (persistence, Trip Service and routing).
-- `application/service`: implementations of inbound use cases; depends only on domain and ports.
-- `adapter/in/web`: REST controllers and transport DTOs.
-- `adapter/in/messaging`: RabbitMQ consumers.
-- `adapter/outbound/persistence/mongo`: MongoDB documents, Spring Data repositories, mappers and port adapters.
-- `adapter/outbound/client`: HTTP adapters for Trip Service and the routing provider.
-- `configuration`: Spring wiring and framework configuration.
+Mọi phụ thuộc phải hướng vào trong:
 
-Do not pass Mongo documents or HTTP DTOs into the domain. Map them at the adapter boundary.
+- `domain`: entity, value object và quy tắc tính giá cốt lõi; không phụ thuộc Spring,
+  MongoDB, RabbitMQ hoặc HTTP.
+- `application`: use case và dịch vụ điều phối nghiệp vụ; chỉ dùng domain và các
+  abstraction do application sở hữu khi cần truy cập dữ liệu hoặc dịch vụ ngoài.
+- `api`: REST controller, request/response DTO và mapper; chuyển dữ liệu HTTP sang
+  input của application.
+- `infrastructure`: MongoDB repository, HTTP client, RabbitMQ listener và cấu hình
+  Spring; hiện thực các abstraction mà application cần.
 
-## Implementation order
+Không truyền Mongo document hoặc HTTP DTO vào domain. Việc chuyển đổi dữ liệu phải
+được thực hiện tại biên `api` hoặc `infrastructure`.
 
-1. Complete domain models and pricing policies.
-2. Define input commands/results and output port contracts.
-3. Implement application services with unit tests using fake ports in test scope only.
-4. Implement MongoDB, Trip Service and routing adapters.
-5. Implement REST controllers.
-6. Implement idempotent event handling, then enable RabbitMQ consumers.
+## Thứ tự triển khai
+
+1. Hoàn thiện domain model và các chính sách tính giá.
+2. Định nghĩa input/output của từng use case trong `application`.
+3. Cài đặt application service và unit test bằng repository/client giả trong test.
+4. Cài đặt MongoDB repository, Trip Service client và routing client trong
+   `infrastructure`.
+5. Cài đặt REST controller trong `api`.
+6. Cài đặt xử lý event có idempotency rồi mới bật RabbitMQ consumer.
 
